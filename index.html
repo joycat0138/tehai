@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="手牌記憶">
+<meta name="theme-color" content="#0e5b3e">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<title>手牌記憶トレーナー</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Noto+Serif+JP:wght@700;900&display=swap" rel="stylesheet">
+<style>
+/* VOICE everyday practice tool for a pro player: quiet, exact
+   IDEA a mahjong table: green felt, ivory tiles, the hand rack
+   PICTURE the 13-tile hand itself, face up then face down, with the turn feed and rivers
+   COLOUR felt green, ivory tiles, red/blue/green suit inks, gold for the action
+   TYPE Zen Kaku Gothic New for UI + Noto Serif JP for tile faces
+   LAYOUT felt band: title + modes, settings, stage; history on the page below; phones stack */
+:root{color-scheme:light dark;--bg:light-dark(#f2f5f1,#09140f);--ink:light-dark(#13201a,#e5ede7);--panel:light-dark(#fff,#12211a);--line:light-dark(#d4ddd6,#22362c);--felt:#0e5b3e;--felt2:#093f2b;--ivory:#f7f2e4;--red:#c8102e;--blue:#1446a8;--green:#13723f;--gold:#f2c14e}
+:root{--mute:light-dark(#56645c,#9cada3)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+button,select,input{touch-action:manipulation}
+html{-webkit-text-size-adjust:100%}
+.hist{padding-bottom:max(clamp(22px,3.5vw,44px),calc(env(safe-area-inset-bottom) + 16px))}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 "Zen Kaku Gothic New",system-ui,sans-serif;overflow-x:clip}
+.wrap{max-width:1000px;margin:0 auto}
+.band{padding:clamp(22px,3.5vw,44px) max(4vw,16px)}
+.felt{padding-top:max(clamp(22px,3.5vw,44px),calc(env(safe-area-inset-top) + 12px));padding-left:max(4vw,16px,env(safe-area-inset-left));padding-right:max(4vw,16px,env(safe-area-inset-right));background:radial-gradient(120% 80% at 50% 0%,#167a54,var(--felt) 45%,var(--felt2));color:#f3efe2}
+.top{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:14px 24px}
+h1{font-size:clamp(28px,4.4vw,44px);line-height:1.05;letter-spacing:-.02em;margin:0;font-weight:900}
+.modes{display:flex;gap:4px;background:rgba(0,0,0,.25);padding:4px;border-radius:12px;flex-wrap:wrap}
+.modes button{min-height:44px;padding:0 16px;border:0;border-radius:9px;background:transparent;color:#f3efe2;font:700 15px/1 inherit;cursor:pointer}
+.modes button[aria-pressed=true]{background:var(--ivory);color:#10301f}
+.modes button:focus-visible,.btn:focus-visible,.ghost:focus-visible,.t:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.desc{margin:10px 0 0;color:#cfe3d6;font-size:15px}
+.set{display:flex;flex-wrap:wrap;gap:12px 18px;margin-top:16px;align-items:end}
+.set label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:#cfe3d6}
+.set label.chk{flex-direction:row;align-items:center;gap:8px;min-height:44px;font-size:15px;color:#f3efe2}
+select,input[type=text]{font:16px inherit;min-height:44px;padding:0 12px;border-radius:9px;border:1px solid rgba(255,255,255,.3);background:rgba(0,0,0,.25);color:#f8f4e8}
+option{color:#111;background:#fff}
+input[type=checkbox]{width:22px;height:22px;accent-color:var(--gold)}
+.stage{margin-top:22px;background:rgba(0,0,0,.16);border-radius:18px;padding:clamp(16px,3vw,28px);min-height:380px}
+.cap{margin:0 0 12px;text-align:center;font-weight:700;color:#e9f2ec}
+.cap code{font:500 14px/1.4 ui-monospace,Menlo,monospace;background:rgba(0,0,0,.25);padding:2px 8px;border-radius:6px;margin-left:6px;overflow-wrap:anywhere}
+.tip{margin:16px auto 0;max-width:560px;text-align:center;color:#cfe3d6;font-size:15px}
+.rack{--tw:clamp(20px,calc((100vw - 96px)/13.9),54px);display:flex;flex-wrap:wrap;justify-content:center;gap:3px}
+.t{position:relative;width:var(--tw);height:calc(var(--tw)*1.333);flex:none;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(170deg,#fbf8f4,#f5f0eb 55%,#e9e2d8);border-radius:calc(var(--tw)*.13);box-shadow:inset 0 0 0 1px rgba(0,0,0,.07),inset 0 -2px 3px rgba(0,0,0,.06),0 calc(var(--tw)*.1) 0 #e3962a,0 calc(var(--tw)*.1 + 1px) 0 #a8680f,0 6px 10px rgba(0,0,0,.32);margin-bottom:calc(var(--tw)*.1);font-family:"Noto Serif JP",serif;border:0;padding:0;color:#111}
+button.t{cursor:pointer}
+button.t:disabled{opacity:.35;cursor:not-allowed}
+button.t:not(:disabled):active{transform:translateY(2px)}
+.t img{width:100%;height:100%;display:block;object-fit:contain;pointer-events:none;user-select:none}
+.t.back{background:linear-gradient(160deg,#f3b553,#d98b22 60%,#c47a17);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 calc(var(--tw)*.1) 0 #f4efe0,0 calc(var(--tw)*.1 + 1px) 0 #cfc6ad,0 6px 10px rgba(0,0,0,.3)}
+.t.back::before{content:"";position:absolute;inset:16%;border:1.5px solid rgba(255,255,255,.35);border-radius:3px}
+.t.miss{outline:3px solid var(--red);outline-offset:2px}
+.t.on::after{content:"手";position:absolute;top:-9px;right:-9px;width:22px;height:22px;display:grid;place-items:center;border-radius:50%;background:var(--red);color:#fff;font:700 12px/1 "Zen Kaku Gothic New",sans-serif}
+.slot{width:var(--tw);height:calc(var(--tw)*1.333);border:2px dashed rgba(255,255,255,.32);border-radius:calc(var(--tw)*.14);flex:none}
+.acts{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center;margin-top:22px}
+.btn,.ghost{min-height:44px;padding:0 22px;border-radius:10px;font:700 16px/1 inherit;cursor:pointer}
+.btn{background:var(--gold);color:#2a1d00;border:0;box-shadow:0 3px 0 #b88a1f}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.ghost{background:transparent;color:#f3efe2;border:1px solid rgba(255,255,255,.4)}
+.hint{font-size:13px;color:#b9d3c3}
+.cd{height:6px;background:rgba(255,255,255,.15);border-radius:3px;max-width:640px;margin:20px auto 0;overflow:hidden}
+.cd i{display:block;height:100%;background:var(--gold);animation:cd linear forwards}
+@keyframes cd{from{width:100%}to{width:0}}
+.turn{--tw:clamp(34px,8vw,50px);background:rgba(0,0,0,.24);border-radius:14px;padding:14px 18px;margin:20px auto 0;max-width:640px;animation:pop .22s ease-out}
+@keyframes pop{from{opacity:.2;transform:translateY(6px)}to{opacity:1;transform:none}}
+.tn{font-size:14px;color:#cfe3d6;margin-bottom:4px}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0}
+.who{font-weight:700;width:3.2em}
+.lab{font-size:14px;color:#cfe3d6}
+.tag{font-style:normal;font-size:13px;font-weight:700;padding:3px 10px;border-radius:99px;background:rgba(255,255,255,.16)}
+.tag.te{background:var(--gold);color:#2a1d00}
+.rivers{--tw:24px;max-width:640px;margin:12px auto 0;display:grid;gap:8px}
+.rv{display:flex;gap:8px;align-items:center}
+.rv>span:first-child{font-size:13px;color:#cfe3d6;width:5.5em;flex:none}
+.rv .line{display:flex;flex-wrap:wrap;gap:3px}
+.tray{min-height:60px}
+.noteRow{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:center;margin:16px 0 4px}
+.noteRow label{font-size:13px;color:#cfe3d6}
+.noteRow input{width:min(320px,100%)}
+.noteMsg{text-align:center;font-size:13px;color:var(--gold);min-height:20px;margin:0}
+.pal{--tw:clamp(30px,calc((100vw - 90px)/9.6),46px);display:grid;gap:10px;justify-content:center;margin-top:10px}
+.pal .pr{display:flex;gap:5px;flex-wrap:wrap;justify-content:center}
+.river{--tw:clamp(34px,7vw,48px);display:flex;flex-wrap:wrap;gap:12px 8px;justify-content:center}
+.score{text-align:center;margin-bottom:16px}
+.score b{font-size:clamp(56px,10vw,80px);line-height:1;font-weight:900;color:var(--gold)}
+.score span{font-size:18px;font-weight:700;margin-left:6px}
+.score .sub{display:block;margin:6px 0 0;font-size:16px;color:#cfe3d6}
+.resr{margin-top:18px}
+.tr{display:flex;flex-direction:column;align-items:center;gap:6px}
+.tr small{font-size:12px;color:#cfe3d6;white-space:nowrap}
+.tr.ng small{color:#fff;background:var(--red);padding:0 6px;border-radius:4px}
+.qs{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px;max-width:620px;margin:6px auto 0}
+.q{background:rgba(0,0,0,.25);border-radius:8px;padding:6px 0;text-align:center;line-height:1.2}
+.q small{display:block;font-size:12px;color:#cfe3d6}
+.q b{font-size:20px}
+.q.ok{background:var(--gold);color:#2a1d00}.q.ok small{color:#5a4310}
+.q.ng{background:rgba(200,16,46,.55)}
+@media(max-width:600px){.qs{grid-template-columns:repeat(5,minmax(0,1fr))}}
+.adv{text-align:center;margin:18px 0 0;font-weight:700}
+.legend{text-align:center;font-size:13px;color:#cfe3d6;margin:10px 0 0}
+.hist h2{font-size:clamp(24px,3vw,32px);line-height:1.1;margin:0 0 6px}
+.hist .h3{font-size:18px;margin:24px 0 0}
+.hist .lead{color:var(--mute);margin:0 0 18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.card h3{margin:0;font-size:15px}
+.card .big{font-size:34px;font-weight:900;margin:2px 0;line-height:1.1}
+.card p{margin:0;color:var(--mute);font-size:14px}
+.chart{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-top:12px}
+.chart h3{margin:0 0 10px;font-size:15px}
+.bars{display:flex;align-items:flex-end;gap:4px;height:130px;border-top:1px dashed var(--line);border-bottom:1px solid var(--line)}
+.bar{flex:1;height:100%;display:flex;align-items:flex-end}
+.bar i{display:block;width:100%;height:var(--h);border-radius:3px 3px 0 0;background:var(--felt)}
+.bar.m-track i{background:#c88a14}
+.bar.m-dual i{background:var(--red)}
+.keys{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--mute);margin-top:8px}
+.keys span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;background:var(--c)}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line)}
+td.num,th.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.rst{margin-top:14px;min-height:44px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:500 14px inherit;cursor:pointer}
+.empty{background:var(--panel);border:1px dashed var(--line);border-radius:14px;padding:22px;color:var(--mute)}
+[hidden]{display:none!important}
+@media(max-width:600px){.who{width:auto}.stage{padding:14px 10px}.rv>span:first-child{width:auto}.rv{flex-direction:column;align-items:flex-start}}
+@media(prefers-reduced-motion:reduce){.turn{animation:none}}
+</style>
+</head>
+<body>
+<header class="felt band">
+ <div class="wrap">
+  <div class="top">
+   <h1>手牌記憶トレーナー</h1>
+   <div class="modes" role="group" aria-label="モード">
+    <button data-a="mode" data-v="flash">フラッシュ</button>
+    <button data-a="mode" data-v="track">追跡</button>
+    <button data-a="mode" data-v="dual">追跡＋下家</button>
+   </div>
+  </div>
+  <p class="desc" id="desc"></p>
+  <div class="set">
+   <label>表示時間<select id="sec"></select></label>
+   <label id="lTurns">巡目数<select id="turns"></select></label>
+   <label id="lSpeed">1巡の進み方<select id="speed"></select></label>
+   <label>手牌の形<select id="diff"></select></label>
+   <label class="chk"><input type="checkbox" id="hon">字牌を含む</label>
+   <label class="chk"><input type="checkbox" id="set10">10問テスト</label>
+  </div>
+  <div class="stage" id="stage" aria-live="polite"></div>
+ </div>
+</header>
+<section class="band hist"><div class="wrap" id="hist"></div></section>
+<script>
+{
+const MK='一二三四五六七八九',HON='東南西北白發中',KEY='tehai-trainer-v1';
+const SECS=[1,2,3,5,8,10],TURNS=[2,3,4,6,8,10,12,15,18],SPEEDS=[0,1,1.5,2,3];
+const MODE={flash:['フラッシュ','手牌を数秒見て、伏せてから13枚を再現します。'],track:['追跡','伏せた手牌に、毎巡のツモと打牌を頭の中で反映し続けます。最後に今の手牌を答えます。'],dual:['追跡＋下家','自分の手牌を追いながら、下家の捨て牌が手出しかツモ切りかも覚えます。']};
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const saved=store.get(KEY,{});
+const cfg=Object.assign({mode:'flash',sec:8,turns:4,speed:0,hon:true,diff:'normal',set10:true},saved.cfg||{});
+const DIFFS=[['easy','整った形'],['normal','ふつう'],['hard','バラバラ']],DNAME=Object.fromEntries(DIFFS);
+let sets=Array.isArray(saved.sets)?saved.sets:[];
+let hist=Array.isArray(saved.hist)?saved.hist:[];
+const save=()=>store.set(KEY,{cfg,hist:hist.slice(-300),sets:sets.slice(-100)});
+const S={phase:'idle',hand:[],final:[],turns:[],ti:0,answer:[],marks:[],res:null,sample:[],set:null};
+let timer=null;
+const $=s=>document.querySelector(s);
+const rnd=n=>Math.floor(Math.random()*n);
+const sortA=a=>a.slice().sort((x,y)=>x-y);
+const counts=a=>{const c=new Array(34).fill(0);a.forEach(t=>c[t]++);return c};
+const expand=c=>{const o=[];c.forEach((k,i)=>{for(let j=0;j<k;j++)o.push(i)});return o};
+
+const tname=id=>id<27?`${id%9+1}${'萬筒索'[Math.floor(id/9)]}`:HON[id-27];
+const FILES=[...[1,2,3,4,5,6,7,8,9].map(n=>'Man'+n),...[1,2,3,4,5,6,7,8,9].map(n=>'Pin'+n),...[1,2,3,4,5,6,7,8,9].map(n=>'Sou'+n),'Ton','Nan','Shaa','Pei','Haku','Hatsu','Chun'];
+function tile(id,cls='',tag='span',attr=''){
+ if(id<0)return `<${tag} class="t back ${cls}" ${attr}></${tag}>`;
+ return `<${tag} class="t ${cls}" ${attr} aria-label="${tname(id)}"><img src="tiles/${FILES[id]}.svg" alt="" draggable="false"></${tag}>`;
+}
+const rack=(a,cls='')=>`<div class="rack">${a.map(t=>tile(t,cls)).join('')}</div>`;
+const randTile=h=>rnd(h?34:27);
+
+function genHand(hon,df=cfg.diff){
+ for(let tries=0;tries<300;tries++){
+  const c=new Array(34).fill(0),out=[];let ok=true;
+  const add=(...ts)=>{ts.forEach(t=>c[t]++);if(ts.some(t=>c[t]>4)){ts.forEach(t=>c[t]--);return false}out.push(...ts);return true};
+  let m,t;
+  if(df==='easy'){m=2+rnd(2);t=Math.floor((13-3*m)/2)}
+  else if(df==='hard'){m=rnd(2);t=1+rnd(2)}
+  else{m=1+rnd(3);t=Math.min(Math.floor((13-3*m)/2),2+rnd(2))}
+  const f=13-3*m-2*t,pr=df==='easy'?.3:.22,rr=df==='easy'?.8:.6;
+  for(let i=0;i<m&&ok;i++){if(Math.random()<.8){const s=rnd(3)*9,n=rnd(7);ok=add(s+n,s+n+1,s+n+2)}else{const x=randTile(hon);ok=add(x,x,x)}}
+  for(let i=0;i<t&&ok;i++){const r=Math.random(),s=rnd(3)*9;
+   if(r<pr){const x=randTile(hon);ok=add(x,x)}
+   else if(r<rr){const n=1+rnd(6);ok=add(s+n,s+n+1)}
+   else if(r<.85){const n=rnd(7);ok=add(s+n,s+n+2)}
+   else{const n=rnd(2)?0:7;ok=add(s+n,s+n+1)}}
+  for(let i=0;i<f&&ok;i++)ok=add(randTile(hon));
+  if(ok&&out.length===13)return out;
+ }
+ return [0,1,2,10,11,12,20,21,22,4,4,15,16];
+}
+function choose(c){
+ let best=-1,bv=1e9;
+ for(let t=0;t<34;t++){if(!c[t])continue;let v;
+  if(t>=27)v=c[t]>=3?9:c[t]===2?5:0;
+  else{const n=t%9;v=c[t]>=3?8:c[t]===2?4:0;
+   for(const d of [-2,-1,1,2]){const m=n+d;if(m<0||m>8)continue;if(c[t+d])v+=Math.abs(d)===1?2.2:1.2}
+   v+=(n===0||n===8)?-.3:(n===1||n===7)?.1:.3}
+  v+=Math.random()*.8;if(v<bv){bv=v;best=t}}
+ return best;
+}
+function makeWall(used){
+ const lim=cfg.hon?34:27,c=new Array(34).fill(4);used.forEach(t=>c[t]--);
+ const w=[];for(let i=0;i<lim;i++)for(let j=0;j<c[i];j++)w.push(i);
+ for(let i=w.length-1;i>0;i--){const j=rnd(i+1);[w[i],w[j]]=[w[j],w[i]]}
+ return w;
+}
+function parseNote(str){
+ const s=str.normalize('NFKC').toLowerCase(),out=[];let buf=[];
+ for(const ch of s){
+  if(/[0-9]/.test(ch))buf.push(+ch);
+  else if('mps'.includes(ch)){const b='mps'.indexOf(ch)*9;buf.forEach(n=>out.push(b+(n===0?4:n-1)));buf=[]}
+  else if(ch==='z'){buf.forEach(n=>{if(n>=1&&n<=7)out.push(26+n)});buf=[]}
+  else if(HON.includes(ch))out.push(27+HON.indexOf(ch));
+ }
+ return {tiles:out,left:buf.length};
+}
+function toNote(a){
+ const s=sortA(a);let o='';
+ [['m',0],['p',9],['s',18]].forEach(([k,b])=>{const d=s.filter(t=>t>=b&&t<b+9).map(t=>t-b+1).join('');if(d)o+=d+k});
+ return o+s.filter(t=>t>=27).map(t=>HON[t-27]).join('');
+}
+function matchCount(a,b){const c=counts(a);let k=0;b.forEach(t=>{if(c[t]>0){c[t]--;k++}});return k}
+function markList(a,b){const c=counts(b);return sortA(a).map(t=>{const ok=c[t]>0;if(ok)c[t]--;return {t,ok}})}
+
+function start(){
+ clearTimeout(timer);
+ S.hand=sortA(genHand(cfg.hon));S.answer=[];S.marks=[];S.res=null;S.ti=0;S.turns=[];S.final=S.hand.slice();
+ if(cfg.mode!=='flash'){
+  const c=counts(S.hand);let oc=null,opp=[];
+  if(cfg.mode==='dual'){for(let i=0;i<100;i++){const o=genHand(cfg.hon),x=counts(o);if(x.every((k,j)=>k+c[j]<=4)){oc=x;opp=o;break}}}
+  if(cfg.mode==='dual'&&!oc){oc=counts([]);}
+  const w=makeWall([...S.hand,...opp]);
+  for(let k=0;k<cfg.turns;k++){
+   const d=w.pop();c[d]++;const x=choose(c);c[x]--;const rec={me:{d,x}};
+   if(oc){const od=w.pop();oc[od]++;const ox=choose(oc);oc[ox]--;rec.op={d:od,x:ox,ts:ox===od}}
+   S.turns.push(rec);
+  }
+  S.final=expand(c);
+ }
+ S.phase='mem';render();
+ timer=setTimeout(afterMem,cfg.sec*1000);
+}
+function afterMem(){if(cfg.mode==='flash')S.phase='ans';else{S.phase='turn';S.ti=0;schedule()}render()}
+function schedule(){clearTimeout(timer);if(cfg.speed>0)timer=setTimeout(next,cfg.speed*1000)}
+function next(){if(S.phase!=='turn')return;S.ti++;if(S.ti>=S.turns.length){clearTimeout(timer);S.phase='ans'}else schedule();render()}
+function begin(){S.set=cfg.set10?{i:1,list:[]}:null;start()}
+function nextq(){if(!S.set)return begin();S.set.i++;start()}
+function quit(){clearTimeout(timer);S.set=null;S.phase='idle';S.sample=sortA(genHand(cfg.hon));render()}
+function submit(){if(S.answer.length!==13)return;if(cfg.mode==='dual'){S.phase='ted';S.marks=S.turns.map(()=>false);render();return}finish()}
+function finish(){
+ const sc=matchCount(S.final,S.answer);let ted=null,tt=0;
+ if(cfg.mode==='dual'){tt=S.turns.length;ted=S.turns.reduce((a,r,i)=>a+((!r.op.ts)===S.marks[i]?1:0),0)}
+ S.res={sc,ted,tt};
+ hist.push({m:cfg.mode,sec:cfg.sec,tn:cfg.mode==='flash'?0:cfg.turns,df:cfg.diff,sc,ted,tt,d:Date.now()});
+ if(S.set){S.set.list.push({sc,ted,tt});if(S.set.list.length===10){const L=S.set.list;sets.push({d:Date.now(),m:cfg.mode,sec:cfg.sec,tn:cfg.mode==='flash'?0:cfg.turns,df:cfg.diff,tot:L.reduce((a,x)=>a+x.sc,0),pf:L.filter(x=>x.sc===13).length})}}
+ save();
+ S.phase='res';render();renderHist();
+}
+
+function suggestion(){
+ const {sc,ted,tt}=S.res,perfect=sc===13&&(ted===null||ted===tt);
+ const lower=(arr,v)=>arr.filter(x=>x<v).pop(),higher=(arr,v)=>arr.find(x=>x>v);
+ if(perfect){
+  if(cfg.mode==='flash'){const v=lower(SECS,cfg.sec);return v?{t:'全問正解。表示時間を短くしましょう。',k:'sec',v,l:`表示${v}秒で続ける`}:{t:'1秒で全問正解。追跡モードに進みましょう。',k:'mode',v:'track',l:'追跡モードへ'}}
+  const v=higher(TURNS,cfg.turns);return v?{t:'全問正解。追う巡目を増やしましょう。',k:'turns',v,l:`${v}巡で続ける`}:{t:'最長の巡目で全問正解です。進行を速くしてみましょう。',k:'speed',v:1,l:'1巡1秒で続ける'};
+ }
+ if(sc<=9){
+  if(cfg.mode==='flash'){const v=higher(SECS,cfg.sec);if(v)return {t:'負荷が高めです。一段下げて9割以上を安定させましょう。',k:'sec',v,l:`表示${v}秒で続ける`}}
+  else{const v=lower(TURNS,cfg.turns);if(v)return {t:'負荷が高めです。一段下げて9割以上を安定させましょう。',k:'turns',v,l:`${v}巡で続ける`}}
+ }
+ return {t:'あと少し。崩れた色を意識して、同じ設定でもう一度。'};
+}
+
+function render(){
+ const st=$('#stage'),p=S.phase;let h='';
+ if(p==='idle'){
+  h=`<p class="cap">例の手牌（スタートで新しい手牌が出ます）</p>${rack(S.sample)}
+  <p class="tip">萬子→筒子→索子の順に、面子・塔子で区切って唱えると覚えやすくなります。</p>
+  <div class="acts"><button class="btn" data-a="begin">${cfg.set10?'10問テストを始める':'スタート'}</button><span class="hint">Space キーでも開始</span></div>`;
+ }else if(p==='mem'){
+  h=`<p class="cap">${S.set?`第${S.set.i}問 / 10　`:''}覚えてください（${cfg.sec}秒）</p>${rack(S.hand)}
+  <div class="cd"><i style="animation-duration:${cfg.sec}s"></i></div>
+  <div class="acts"><button class="ghost" data-a="quit">やめる</button></div>`;
+ }else if(p==='turn'){
+  const r=S.turns[S.ti],dual=cfg.mode==='dual',past=S.turns.slice(0,S.ti);
+  h=`<p class="cap">手牌は伏せたまま。頭の中で更新してください</p>${rack(new Array(13).fill(-1))}
+  <div class="turn" data-k="${S.ti}">
+   <div class="tn">${S.ti+1}巡目 / ${S.turns.length}</div>
+   <div class="row"><span class="who">自分</span><span class="lab">ツモ</span>${tile(r.me.d)}<span class="lab">→ 打</span>${tile(r.me.x)}${r.me.d===r.me.x?'<em class="tag">ツモ切り</em>':''}</div>
+   ${dual?`<div class="row"><span class="who">下家</span><span class="lab">打</span>${tile(r.op.x)}<em class="tag ${r.op.ts?'':'te'}">${r.op.ts?'ツモ切り':'手出し'}</em></div>`:''}
+  </div>
+  ${past.length?`<div class="rivers"><div class="rv"><span>自分の河</span><div class="line">${past.map(x=>tile(x.me.x)).join('')}</div></div>${dual?`<div class="rv"><span>下家の河</span><div class="line">${past.map(x=>tile(x.op.x)).join('')}</div></div>`:''}</div>`:''}
+  <div class="acts">${cfg.speed?'':'<button class="btn" data-a="next">次へ</button><span class="hint">Space キーでも進みます</span>'}<button class="ghost" data-a="quit">やめる</button></div>`;
+ }else if(p==='ans'){
+  h=`<p class="cap">${cfg.mode==='flash'?'さっきの手牌':`今の手牌（${S.turns.length}巡後）`}を入力してください</p>
+  <div id="tray" class="rack tray"></div>
+  <div class="noteRow"><label for="note">記法でも入力できます</label><input type="text" id="note" autocomplete="off" spellcheck="false" placeholder="例 234m55p789s東東"></div>
+  <p class="noteMsg" id="noteMsg"></p>
+  <div id="pal" class="pal"></div>
+  <div class="acts"><button class="btn" id="sub" data-a="submit">答え合わせ</button><button class="ghost" data-a="undo">1枚戻す</button><button class="ghost" data-a="clr">全部消す</button><button class="ghost" data-a="quit">やめる</button></div>`;
+ }else if(p==='ted'){
+  h=`<p class="cap">下家の捨て牌のうち、手出しだったものをタップしてください</p>
+  <div class="river">${S.turns.map((r,i)=>tile(r.op.x,S.marks[i]?'on':'','button',`data-a="mark" data-v="${i}" aria-pressed="${S.marks[i]}"`)).join('')}</div>
+  <p class="legend">タップで「手」マークが付きます。付いていない牌はツモ切り扱いです。</p>
+  <div class="acts"><button class="btn" data-a="judge">判定する</button></div>`;
+ }else if(p==='res'){
+  const {sc,ted,tt}=S.res,sg=suggestion();
+  h=`<div class="score"><b>${sc}</b><span>/ 13枚 正解</span>${ted!==null?`<span class="sub">手出し・ツモ切りの判定 ${ted} / ${tt}</span>`:''}</div>
+  <p class="cap">正解${cfg.mode!=='flash'?`（${S.turns.length}巡後）`:''}<code>${toNote(S.final)}</code></p>
+  ${rack(markList(S.final,S.answer).map(o=>o.t))}
+  <div class="resr"><p class="cap">あなたの回答<code>${toNote(S.answer)}</code></p></div>
+  <div id="resAns"></div>
+  ${ted!==null?`<div class="resr"><p class="cap">下家の捨て牌（赤い札は判定ミス）</p><div class="river">${S.turns.map((r,i)=>`<div class="tr ${((!r.op.ts)===S.marks[i])?'':'ng'}">${tile(r.op.x)}<small>${r.op.ts?'ツモ切り':'手出し'}</small></div>`).join('')}</div></div>`:''}
+  <p class="legend">赤枠＝正解にあってあなたの回答にない牌／回答にあって正解にない牌</p>
+  ${S.set?'':`<p class="adv">${sg.t}</p>`}
+  ${S.set?`<div class="acts">${S.set.list.length<10?`<button class="btn" data-a="nextq">次の問題へ（${S.set.list.length+1} / 10）</button>`:`<button class="btn" data-a="sum">10問の結果を見る</button>`}<button class="ghost" data-a="quit">中断する</button><span class="hint">Space キーで進みます</span></div>`:`<div class="acts">${sg.k?`<button class="btn" data-a="apply" data-k="${sg.k}" data-v="${sg.v}">${sg.l}</button><button class="ghost" data-a="start">同じ設定でもう一回</button>`:'<button class="btn" data-a="start">もう一回</button>'}</div>`}`;
+ }else if(p==='sum'){
+  const L=S.set.list,tot=L.reduce((a,x)=>a+x.sc,0),pf=L.filter(x=>x.sc===13).length,pc=Math.round(tot/130*100);
+  const prev=sets.filter(x=>x.m===cfg.mode&&x.df===cfg.diff&&x.sec===cfg.sec).slice(-2,-1)[0];
+  const di=DIFFS.findIndex(x=>x[0]===cfg.diff);
+  const sg=pc>=90&&di<2?{t:`9割を超えました。手牌の形を「${DIFFS[di+1][1]}」に上げましょう。`,v:DIFFS[di+1][0],l:`「${DIFFS[di+1][1]}」で10問`}:pc<70&&di>0?{t:`まずは「${DIFFS[di-1][1]}」で9割を安定させましょう。`,v:DIFFS[di-1][0],l:`「${DIFFS[di-1][1]}」で10問`}:{t:'この設定で9割を目指して続けましょう。'};
+  h=`<div class="score"><b>${pc}%</b><span>10問の正解率</span><span class="sub">${tot} / 130枚・全問正解 ${pf}問${prev?`・前回 ${Math.round(prev.tot/130*100)}%`:''}</span></div>
+  <p class="cap">${MODE[cfg.mode][0]}・${cfg.sec}秒・${DNAME[cfg.diff]}</p>
+  <div class="qs">${L.map((x,i)=>`<div class="q ${x.sc===13?'ok':x.sc<=9?'ng':''}"><small>${i+1}</small><b>${x.sc}</b></div>`).join('')}</div>
+  <p class="adv">${sg.t}</p>
+  <div class="acts">${sg.v?`<button class="btn" data-a="setdiff" data-v="${sg.v}">${sg.l}</button><button class="ghost" data-a="begin">同じ設定でもう10問</button>`:'<button class="btn" data-a="begin">もう10問</button>'}</div>`;
+ }
+ st.innerHTML=h;
+ if(p==='ans'){renderAns();$('#note').value=toNote(S.answer)}
+ if(p==='res'){
+  const racks=st.querySelectorAll('.rack');
+  racks[0].outerHTML=`<div class="rack">${markList(S.final,S.answer).map(o=>tile(o.t,o.ok?'':'miss')).join('')}</div>`;
+  $('#resAns').innerHTML=`<div class="rack">${markList(S.answer,S.final).map(o=>tile(o.t,o.ok?'':'miss')).join('')}</div>`;
+ }
+}
+function renderAns(){
+ const a=sortA(S.answer),c=counts(a),full=a.length>=13;
+ $('#tray').innerHTML=a.map((t,i)=>tile(t,'','button',`data-a="del" data-v="${i}" title="タップで外す"`)).join('')+'<span class="slot"></span>'.repeat(13-a.length);
+ const rows=[[0,9],[9,9],[18,9]];if(cfg.hon)rows.push([27,7]);
+ $('#pal').innerHTML=rows.map(([b,n])=>`<div class="pr">${Array.from({length:n},(_,i)=>b+i).map(t=>tile(t,'','button',`data-a="add" data-v="${t}" ${full||c[t]>=4?'disabled':''}`)).join('')}</div>`).join('');
+ $('#sub').disabled=a.length!==13;
+}
+function syncNote(){const n=$('#note');if(n)n.value=toNote(S.answer);const m=$('#noteMsg');if(m)m.textContent=''}
+
+function renderTop(){
+ document.querySelectorAll('.modes button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===cfg.mode));
+ $('#desc').textContent=MODE[cfg.mode][1];
+ $('#lTurns').hidden=$('#lSpeed').hidden=cfg.mode==='flash';
+ $('#sec').innerHTML=SECS.map(v=>`<option value="${v}" ${v===cfg.sec?'selected':''}>${v}秒</option>`).join('');
+ $('#turns').innerHTML=TURNS.map(v=>`<option value="${v}" ${v===cfg.turns?'selected':''}>${v}巡</option>`).join('');
+ $('#speed').innerHTML=SPEEDS.map(v=>`<option value="${v}" ${v===cfg.speed?'selected':''}>${v?`自動 ${v}秒`:'手動（次へ）'}</option>`).join('');
+ $('#hon').checked=cfg.hon;
+ $('#set10').checked=cfg.set10;
+ $('#diff').innerHTML=DIFFS.map(([v,l])=>`<option value="${v}" ${v===cfg.diff?'selected':''}>${l}</option>`).join('');
+}
+function renderHist(){
+ const el=$('#hist');
+ if(!hist.length){el.innerHTML=`<h2>記録</h2><div class="empty">まだ記録がありません。1回やると、モードごとの正解率と推移がここに出ます。記録はこのブラウザにだけ保存されます。</div>`;return}
+ const pct=a=>a.length?Math.round(a.reduce((s,h)=>s+h.sc/13,0)/a.length*100):0;
+ const last10=hist.slice(-10);
+ const cards=['flash','track','dual'].map(m=>{
+  const a=hist.filter(h=>h.m===m);if(!a.length)return `<div class="card"><h3>${MODE[m][0]}</h3><p class="big">–</p><p>まだ記録なし</p></div>`;
+  const pf=a.filter(h=>h.sc===13&&(h.ted===null||h.ted===h.tt));
+  const best=!pf.length?'全問正解はまだ':m==='flash'?`最短 ${Math.min(...pf.map(h=>h.sec))}秒で全問正解`:`最長 ${Math.max(...pf.map(h=>h.tn))}巡まで全問正解`;
+  return `<div class="card"><h3>${MODE[m][0]}</h3><p class="big">${pct(a)}%</p><p>${a.length}回・全問正解 ${Math.round(pf.length/a.length*100)}%</p><p>${best}</p></div>`}).join('');
+ const bars=hist.slice(-30).map(h=>`<div class="bar m-${h.m}" title="${MODE[h.m][0]} ${h.sc}/13"><i style="--h:${Math.max(3,h.sc/13*100)}%"></i></div>`).join('');
+ const fmt=d=>{const x=new Date(d);return `${x.getMonth()+1}/${x.getDate()} ${String(x.getHours()).padStart(2,'0')}:${String(x.getMinutes()).padStart(2,'0')}`};
+ const rows=hist.slice(-8).reverse().map(h=>`<tr><td class="num">${fmt(h.d)}</td><td>${MODE[h.m][0]}</td><td>${h.sec}秒${h.tn?`・${h.tn}巡`:''}${h.df?`・${DNAME[h.df]}`:''}</td><td class="num">${h.sc}/13${h.ted!==null&&h.ted!==undefined?`・手出し ${h.ted}/${h.tt}`:''}</td></tr>`).join('');
+ el.innerHTML=`<h2>直近${last10.length}回の平均正解率 ${pct(last10)}%</h2><p class="lead">正解率9割を安定して超えたら、負荷を一段上げるのが目安です。</p>
+ <div class="grid">${cards}</div>
+ <div class="chart"><h3>直近${Math.min(30,hist.length)}回の正解率（上の点線が13枚全問正解）</h3><div class="bars">${bars}</div>
+ <div class="keys"><span style="--c:var(--felt)">フラッシュ</span><span style="--c:#c88a14">追跡</span><span style="--c:var(--red)">追跡＋下家</span></div></div>
+ <div class="scroll"><table><thead><tr><th class="num">日時</th><th>モード</th><th>設定</th><th class="num">結果</th></tr></thead><tbody>${rows}</tbody></table></div>
+ ${sets.length?`<h3 class="h3">10問テストの記録</h3><div class="scroll"><table><thead><tr><th class="num">日時</th><th>設定</th><th class="num">正解率</th><th class="num">全問正解</th></tr></thead><tbody>${sets.slice(-6).reverse().map(x=>`<tr><td class="num">${fmt(x.d)}</td><td>${MODE[x.m][0]}・${x.sec}秒${x.tn?`・${x.tn}巡`:''}・${DNAME[x.df]||''}</td><td class="num">${Math.round(x.tot/130*100)}%</td><td class="num">${x.pf}/10</td></tr>`).join('')}</tbody></table></div>`:''}
+ <button class="rst" data-a="reset">記録を消去</button>`;
+}
+
+document.addEventListener('click',e=>{
+ const b=e.target.closest('[data-a]');if(!b||b.disabled)return;const a=b.dataset.a,v=b.dataset.v;
+ if(a==='mode'){clearTimeout(timer);cfg.mode=v;save();renderTop();quit()}
+ else if(a==='start')start();
+ else if(a==='begin')begin();
+ else if(a==='nextq')nextq();
+ else if(a==='sum'){S.phase='sum';render()}
+ else if(a==='setdiff'){cfg.diff=v;save();renderTop();begin()}
+ else if(a==='quit')quit();
+ else if(a==='next')next();
+ else if(a==='add'){if(S.answer.length<13){S.answer.push(+v);renderAns();syncNote()}}
+ else if(a==='del'){const s=sortA(S.answer);s.splice(+v,1);S.answer=s;renderAns();syncNote()}
+ else if(a==='undo'){S.answer.pop();renderAns();syncNote()}
+ else if(a==='clr'){S.answer=[];renderAns();syncNote()}
+ else if(a==='submit')submit();
+ else if(a==='mark'){S.marks[+v]=!S.marks[+v];render()}
+ else if(a==='judge')finish();
+ else if(a==='apply'){const k=b.dataset.k;if(k==='mode')cfg.mode=v;else cfg[k]=+v;S.set=null;save();renderTop();start()}
+ else if(a==='reset'){if(b.dataset.arm){hist=[];sets=[];save();renderHist()}else{b.dataset.arm='1';b.textContent='もう一度押すと消去します';setTimeout(()=>{if(b.isConnected){delete b.dataset.arm;b.textContent='記録を消去'}},3000)}}
+});
+document.addEventListener('change',e=>{
+ const id=e.target.id;
+ if(['sec','turns','speed'].includes(id)){cfg[id]=+e.target.value;save()}
+ else if(id==='hon'){cfg.hon=e.target.checked;save();if(S.phase==='idle')quit()}
+ else if(id==='diff'){cfg.diff=e.target.value;save();if(S.phase==='idle')quit()}
+ else if(id==='set10'){cfg.set10=e.target.checked;save();if(S.phase==='idle')quit()}
+});
+document.addEventListener('input',e=>{
+ if(e.target.id!=='note')return;
+ const {tiles,left}=parseNote(e.target.value),c=counts(tiles),m=$('#noteMsg');
+ if(tiles.length>13){m.textContent='13枚を超えています';return}
+ if(c.some(k=>k>4)){m.textContent='同じ牌が5枚以上あります';return}
+ if(!cfg.hon&&tiles.some(t=>t>=27)){m.textContent='字牌なしの設定です';return}
+ m.textContent=left?'数字のあとに m / p / s / z を付けてください':'';
+ S.answer=tiles;renderAns();
+});
+document.addEventListener('keydown',e=>{
+ if(e.target.matches('input,select,textarea'))return;
+ if(e.key!==' '&&e.key!=='Enter')return;
+ if(e.target.matches('button')&&e.key==='Enter')return;
+ const p=S.phase;
+ if(p==='idle'||p==='sum'){e.preventDefault();begin()}
+ else if(p==='res'){e.preventDefault();if(!S.set)start();else if(S.set.list.length<10)nextq();else{S.phase='sum';render()}}
+ else if(p==='turn'&&!cfg.speed){e.preventDefault();next()}
+ else if(p==='ans'&&S.answer.length===13){e.preventDefault();submit()}
+});
+
+S.sample=sortA(genHand(cfg.hon));
+renderTop();render();renderHist();
+}
+</script>
+<script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>
+</body>
+</html>
